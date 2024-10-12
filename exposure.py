@@ -23,7 +23,7 @@ class Exposure:
         EXPOSURE_COEFF = 1
         EXPOSURE_INITIAL = 78
         EXPOSURE_MIN = 1 * EXPOSURE_COEFF
-        EXPOSURE_MAX = 50 * 10 * EXPOSURE_COEFF
+        EXPOSURE_MAX = 100 * 10 * EXPOSURE_COEFF
         exposure = EXPOSURE_INITIAL * EXPOSURE_COEFF
         exposure_last = EXPOSURE_INITIAL
 
@@ -37,11 +37,13 @@ class Exposure:
                 gray = cv2.cvtColor(f, cv2.COLOR_BGR2GRAY)
                 bright = np.average(gray)
                 if bright < 128 - 8:
-                    if exposure < EXPOSURE_MAX:
-                        exposure += 1
+                        exposure += 1 + exposure // (EXPOSURE_COEFF * 128)
                 elif bright > 128 + 8:
-                    if exposure > EXPOSURE_MIN:
-                        exposure -= 1
+                        exposure -= 1 - exposure // (EXPOSURE_COEFF * 128)
+                if exposure < EXPOSURE_MIN:
+                    exposure = ESPOSURE_MIN
+                elif exposure > EXPOSURE_MAX:
+                    exposure = EXPOSURE_MAX
                 val = exposure // EXPOSURE_COEFF
                 if val != exposure_last:
                     self.cap.set(cv2.CAP_PROP_EXPOSURE, val)
