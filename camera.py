@@ -12,6 +12,9 @@ MIN_WHITE = 64 * 64
 
 class Camera:
 
+    lastframe = None
+    lastvalid = False
+
     def __init__(self, idx, outfolder):
 
         self.idx = idx
@@ -29,12 +32,12 @@ class Camera:
 
         # capure device, set resolution and frame rate
         if self.is_file:
-            cap = cv2.VideoCapture('vtest.webm')
+            cap = cv2.VideoCapture(self.idx)
             output_folder = "./"
             STOP_SIZE = 5
         else:
             #cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-            cap = cv2.VideoCapture(0, cv2.CAP_V4L2, CAPFLAGS)
+            cap = cv2.VideoCapture(self.idx, cv2.CAP_V4L2, CAPFLAGS)
             output_folder = "/surveillance/"
             # set camera properties
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1600)
@@ -101,11 +104,19 @@ class Camera:
                     reco.stop()
             if register > 0:
                 reco.frame(frame)
+                self.lastframe = frame
+                self.lastvalid = True
             #cv2.imshow('Motion Mask', fgmask)
         reco.exit()
         expo.exit()
         cap.release()
         cv2.destroyAllWindows()
+
+    def last_frame(self):
+        if self.lastvalid:
+            self.lastvalid = False
+            return True, self.lastframe
+        return False, None
 
     def exit(self):
         self.thread.join()
