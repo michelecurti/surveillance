@@ -70,7 +70,7 @@ class Camera:
                 break
             # update exposure
             curr_frame += 1
-            if curr_frame % 10 == 0:
+            if curr_frame % (capf * 2) == 0:
                 expo.frame(frame)
             # update background
             fgmask = fgbg.apply(frame, learningRate = 0.015)

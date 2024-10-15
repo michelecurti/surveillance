@@ -20,6 +20,11 @@ class Exposure:
 
     def thread_function(self):
 
+        EXP_NON = 1 # exposure is fixes
+        EXP_INC = 2 # exposure is increasing
+        EXP_DEC = 3 # exposure is decreasing
+        exp_act = EXP_NON
+
         EXPOSURE_COEFF = 1
         EXPOSURE_INITIAL = 78
         EXPOSURE_MIN = 1 * EXPOSURE_COEFF
@@ -36,19 +41,32 @@ class Exposure:
             if e == self.EXPO_FRAME:
                 gray = cv2.cvtColor(f, cv2.COLOR_BGR2GRAY)
                 bright = np.average(gray)
-                if bright < 128 - 8:
-                        exposure += 1 + exposure // (EXPOSURE_COEFF * 128)
-                elif bright > 128 + 8:
-                        exposure -= 1 - exposure // (EXPOSURE_COEFF * 128)
+                if bright < 128 - 10:
+                    # if brightness is below the lower threshold, increase
+                    exp_act = EXP_INC
+                elif bright > 128 + 10:
+                    # if brightness is above the higher threshold, decrease
+                    exp_act = EXP_DEC
+                if ((exp_act == EXP_INC and bright >= 128) or 
+                        (exp_act == EXP_DEC and bright <= 128)):
+                    # is setpoint is reached, stop the algorithm
+                    exp_act = EXP_NON
+                # increase or decrease the exposure time
+                if exp_act == EXP_INC:
+                    exposure += 1 + exposure // (EXPOSURE_COEFF * 128)
+                elif exp_act == EXP_DEC:
+                    exposure -= 1 - exposure // (EXPOSURE_COEFF * 128)
+                # check the limits
                 if exposure < EXPOSURE_MIN:
                     exposure = ESPOSURE_MIN
                 elif exposure > EXPOSURE_MAX:
                     exposure = EXPOSURE_MAX
+                # apply the exposure
                 val = exposure // EXPOSURE_COEFF
                 if val != exposure_last:
                     self.cap.set(cv2.CAP_PROP_EXPOSURE, val)
                     exposure_last = val
-                    #print(bright, val)
+                #print(bright, val)
             else:
                 break
 
