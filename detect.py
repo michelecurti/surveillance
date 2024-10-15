@@ -5,15 +5,15 @@ import os
 import numpy as np
 from datetime import datetime
 
-def resize_with_padding(image, size):
+def resize_with_padding(image, wsize, hsize):
     h, w = image.shape[:2]
-    scale = min(size / w, size / h)
+    scale = min(wsize / w, hsize / h)
     new_w = int(w * scale)
     new_h = int(h * scale)
     resized_image = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)
-    padded_image = np.zeros((size, size, 3), dtype=np.uint8)
-    x_offset = (size - new_w) // 2
-    y_offset = (size - new_h) // 2
+    padded_image = np.zeros((hsize, wsize, 3), dtype=np.uint8)
+    x_offset = (wsize - new_w) // 2
+    y_offset = (hsize - new_h) // 2
     padded_image[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = resized_image
     return padded_image
 
@@ -34,18 +34,27 @@ def croppa(img, x, y, w, h, maxw, maxh):
 
 class Detect:
 
+    TYPE_FACE = 1
+    TYPE_BODY = 2
+
     DETECT_FRAME = 1
     DETECT_EXIT = 2
 
     que = queue.Queue()
 
-    def __init__(self, outfolder):
+    def __init__(self, outfolder, dtyp):
 
         if not os.path.exists(outfolder):
             os.makedirs(outfolder)
 
         self.outfolder = outfolder
-        self.face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+        if dtyp == self.TYPE_FACE:
+            self.face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+            self.imgh = 64
+        else:
+            self.face_cascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
+            self.imgh = 128
 
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
@@ -62,13 +71,13 @@ class Detect:
                 #print("Found %d faces on frame" % (len(faces)))
                 fa = 0
                 for (x, y, w, h) in faces:
-                    if weights[fa] < 1:
+                    if weights[fa] < 1.5:
                         continue
                     fa+= 1
                     ret, cf = croppa(fr, x, y, w, h, fr.shape[1], fr.shape[0])
                     if ret:
                         count +=1
-                        rp = resize_with_padding(cf, 64)
+                        rp = resize_with_padding(cf, 64, self.imgh)
                         fname = self.outfolder + datetime.now().strftime(OUTFORMAT)
                         cv2.imwrite(fname + "_d%09df%02d.jpg" % (count,fa), rp)
             else:
