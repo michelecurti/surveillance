@@ -5,16 +5,19 @@ import cv2
 import time
 
 class Recorder:
-    
+
     VIDEO_START = 1
     VIDEO_FRAME = 2
     VIDEO_STOP = 3
     VIDEO_EXIT = 4
-    
-    que = queue.Queue()
-    
-    def __init__(self, idx, outfolder, capinfo):
 
+    que = queue.Queue()
+
+    def __init__(self, idx, outfolder, capinfo):
+        """
+        Class initialization, pass camera index (for filename), the
+        output fodler and the capture information (witdh, height, fps)
+        """
         self.idx = idx
         self.outfolder = outfolder
         self.capinfo = capinfo
@@ -23,11 +26,17 @@ class Recorder:
         self.thread.start()
 
     def thread_function(self):
-    
+        """
+        Wait for a recording event:
+        - START = open the file
+        - FRAME = store the frame
+        - STOP = close the file
+        - EXIT = exit from thread
+        """
         OUTFORMAT = "%Y_%m_%d_%H_%M_%S"
         OUTEXTENSION = ".mp4"
         OUTFLAGS = (cv2.VIDEOWRITER_PROP_HW_ACCELERATION, cv2.VIDEO_ACCELERATION_ANY)
-        
+
         capw, caph, capf = self.capinfo
         fourcc = cv2.VideoWriter_fourcc('a','v','c','1')
         opened = False
@@ -58,16 +67,20 @@ class Recorder:
                 print(fname + " exit recording")
                 break
         print("Video output thread finishing")
-    
+
     def start(self):
+        """ start a recording """
         self.que.put((self.VIDEO_START, None))
-    
+
     def frame(self, frame):
+        """ store a frame in the recording file """
         self.que.put((self.VIDEO_FRAME, frame))
-    
+
     def stop(self):
+        """ stop recording """
         self.que.put((self.VIDEO_STOP, None))
-        
+
     def exit(self):
+        """ exit from the thread function and join the thread """
         self.que.put((self.VIDEO_EXIT, None))
         self.thread.join()

@@ -6,6 +6,7 @@ import numpy as np
 from datetime import datetime
 
 def resize_with_padding(image, wsize, hsize):
+    """ resize an image to fit the given dimension """
     h, w = image.shape[:2]
     scale = min(wsize / w, hsize / h)
     new_w = int(w * scale)
@@ -18,6 +19,10 @@ def resize_with_padding(image, wsize, hsize):
     return padded_image
 
 def croppa(img, x, y, w, h, maxw, maxh):
+    """
+    Cut a rectangle from an image but extend the rectangle
+    by 10 pixels first
+    """
     x1 = x - 10
     x2 = x + w + 10
     if x1 < 0:
@@ -43,12 +48,17 @@ class Detect:
     que = queue.Queue()
 
     def __init__(self, outfolder, dtyp):
-
+        """
+        Class initialization, pass the output folder and the detection
+        type, TYPE_BODY or TYPE_FACE, to detect bodies or faces
+        """
+        # if output folder does not exist, create it
         if not os.path.exists(outfolder):
             os.makedirs(outfolder)
 
         self.outfolder = outfolder
 
+        # select the cascade xml, accordingly to the detection type
         if dtyp == self.TYPE_FACE:
             self.face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
             self.imgh = 64
@@ -56,17 +66,22 @@ class Detect:
             self.face_cascade = cv2.CascadeClassifier('haarcascade_fullbody.xml')
             self.imgh = 128
 
+        # start the detection thread
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
 
     def thread_function(self):
+        """
+        Wait for detection frame, analyze it and store the detected
+        rectangles into files
+        """
         OUTFORMAT = "%Y_%m_%d_%H_%M_%S"
         count = 0
         while True:
             e, fr = self.que.get()
             if e == self.DETECT_FRAME:
                 gray = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)
-                faces, _, weights = self.face_cascade.detectMultiScale3(gray, scaleFactor=1.3, 
+                faces, _, weights = self.face_cascade.detectMultiScale3(gray, scaleFactor=1.3,
                         minNeighbors=4, minSize=(20, 20), outputRejectLevels=True)
                 #print("Found %d faces on frame" % (len(faces)))
                 fa = 0
@@ -84,9 +99,11 @@ class Detect:
                 break
 
     def frame(self, frame):
+        """ Add frame the the detect frame queue """
         self.que.put((self.DETECT_FRAME, frame))
 
     def exit(self):
+        """ Exit from the thread function and join the thread """
         self.que.put((self.DETECT_EXIT, None))
         self.thread.join()
 

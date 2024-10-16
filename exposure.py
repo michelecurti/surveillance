@@ -4,6 +4,9 @@ import queue
 import cv2
 import time
 
+EXPO_SETP = 128 # brightness setpoint
+EXPO_HYST = 10 # brightness hysteresis
+
 class Exposure:
 
     EXPO_FRAME = 1
@@ -12,15 +15,27 @@ class Exposure:
     que = queue.Queue()
 
     def __init__(self, cap):
-
+        """
+        Class initialization, pass the opencv Capure instance so we can
+        set the exposure parameters
+        """
         self.cap = cap
 
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
 
     def thread_function(self):
-
-        EXP_NON = 1 # exposure is fixes
+        """
+        Wait for a new frame or an exit event, when a new frame is
+        received, calculate the average brightness and set the exposure
+        accordingly.
+        There is some hysteresis:
+         - when the brightness is less than the lower threshold,
+           increase the exposure until the setpoint is reached
+         - when the brightness is more than the higher threshold,
+           decrease the exposure until the setpoint is reached
+        """
+        EXP_NON = 1 # exposure is fixed
         EXP_INC = 2 # exposure is increasing
         EXP_DEC = 3 # exposure is decreasing
         exp_act = EXP_NON
@@ -41,14 +56,14 @@ class Exposure:
             if e == self.EXPO_FRAME:
                 gray = cv2.cvtColor(f, cv2.COLOR_BGR2GRAY)
                 bright = np.average(gray)
-                if bright < 128 - 10:
+                if bright < EXPO_SETP - EXPO_HYST:
                     # if brightness is below the lower threshold, increase
                     exp_act = EXP_INC
-                elif bright > 128 + 10:
+                elif bright > EXPO_SETP + EXPO_HYST:
                     # if brightness is above the higher threshold, decrease
                     exp_act = EXP_DEC
-                if ((exp_act == EXP_INC and bright >= 128) or 
-                        (exp_act == EXP_DEC and bright <= 128)):
+                if ((exp_act == EXP_INC and bright >= EXPO_SETP) or
+                        (exp_act == EXP_DEC and bright <= EXPO_SETP)):
                     # is setpoint is reached, stop the algorithm
                     exp_act = EXP_NON
                 # increase or decrease the exposure time
@@ -71,8 +86,10 @@ class Exposure:
                 break
 
     def frame(self, frame):
+        """ add frame to the frame queue """
         self.que.put((self.EXPO_FRAME, frame))
 
     def exit(self):
+        """ exit from the thread function and join the thread """
         self.que.put((self.EXPO_EXIT, None))
         self.thread.join()
