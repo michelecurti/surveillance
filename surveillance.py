@@ -16,7 +16,7 @@ cameras = []
 if False:
     cameras += [Camera("../asd.mp4", "/surveillance/")]
 else:
-    for i in range (0, 4):
+    for i in range (0, 6):
         cap = cv2.VideoCapture(i)
         if cap is not None and cap.isOpened():
             cap.release()
