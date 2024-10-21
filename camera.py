@@ -59,9 +59,10 @@ class Camera:
             cap = cv2.VideoCapture(self.idx, cv2.CAP_V4L2, CAPFLAGS)
             output_folder = "/surveillance/"
             # set camera properties
+            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1600)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1200)
-            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
             STOP_SIZE = 20
 
         # get capture info, width, height, frames per second
