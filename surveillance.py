@@ -11,9 +11,13 @@ import time
 from camera import Camera
 from detect import Detect
 from recorder import Recorder
+from exposure import Exposure
 
 # start recorder thread
 reco = Recorder("/surveillance/")
+
+# start exposure thread
+expo = Exposure()
 
 # start detection thread
 detect = Detect("/surveillance/detect/", Detect.TYPE_BODY)
@@ -30,7 +34,7 @@ else:
         if cap is not None and cap.isOpened():
             cap.release()
             print("Found camera " + str(i))
-            cameras += [Camera(i, reco)]
+            cameras += [Camera(i, reco, expo)]
 
 # foreach camera detect last frame every half second
 curr = 0
@@ -47,4 +51,5 @@ for camera in cameras:
     camera.exit()
 
 reco.exit()
+expo.exit()
 detect.exit()

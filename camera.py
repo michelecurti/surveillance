@@ -11,11 +11,11 @@ CAPFLAGS = (cv2.CAP_PROP_HW_ACCELERATION, cv2.CAP_PROP_HW_DEVICE)
 MIN_WHITE = 64 * 64
 
 # max recording minutes
-MAX_RECO_MINS = 1
+MAX_RECO_MINS = 5
 
 class Camera:
 
-    def __init__(self, idx, reco):
+    def __init__(self, idx, reco, expo):
         """
         Class initialization, pass the camera index and the output
         folder where to store the detected videos.
@@ -27,6 +27,7 @@ class Camera:
 
         self.idx = idx
         self.reco = reco
+        self.expo = expo
         self.is_file = not isinstance(idx, int)
 
         self.thread = threading.Thread(target=self.thread_function)
@@ -70,14 +71,13 @@ class Camera:
         caph = int(cap.get(4))
         capf = int(cap.get(5))
 
-        # start exposure algorithm thread
-        expo = exposure.Exposure(cap)
-
         start_size = capf * 5 # start recording 5 seconds before movement
         stop_size = capf * STOP_SIZE # stop recording 20 seconds after movement
 
         # print detection information
         print(str(capw)+'x'+str(caph)+'@'+str(capf)+'fps', start_size, stop_size)
+
+        self.expo.start(self.idx, cap)
 
         history = []
         consec = 0
@@ -92,7 +92,7 @@ class Camera:
             # update exposure
             curr_frame += 1
             if curr_frame % (capf * 2) == 0:
-                expo.frame(frame)
+                self.expo.frame(self.idx, frame)
             # update background
             fgmask = fgbg.apply(frame, learningRate = 0.015)
             # fixed size frame history
@@ -136,8 +136,6 @@ class Camera:
                 self.lastframe = frame
                 self.lastvalid = True
             #cv2.imshow('Motion Mask', fgmask)
-        # stop exposure algorithm
-        expo.exit()
         # release the capture instance
         cap.release()
         # destroy all cv2 windows, if any
