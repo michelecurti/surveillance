@@ -39,7 +39,11 @@ else:
 # foreach camera detect last frame every half second
 curr = 0
 while True:
-    time.sleep(0.5)
+    try:
+        time.sleep(0.5)
+    except:
+        print("killed")
+        break
     valid, frame = cameras[curr].last_frame()
     if valid:
         detect.frame(frame)

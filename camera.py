@@ -29,6 +29,7 @@ class Camera:
         self.reco = reco
         self.expo = expo
         self.is_file = not isinstance(idx, int)
+        self.go_on = True
 
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
@@ -85,7 +86,7 @@ class Camera:
         regi_cnt = 0
         curr_frame = 0
 
-        while True:
+        while self.go_on:
             ret, frame = cap.read()
             if not ret:
                 break
@@ -150,4 +151,5 @@ class Camera:
 
     def exit(self):
         """ join the camera thread """
+        self.go_on = False
         self.thread.join()

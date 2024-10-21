@@ -66,7 +66,7 @@ class Recorder:
                    if opened[j]:
                         print(fname[j] + " stop recording")
                         output[j].release
-                print(fname[i] + " exit recording")
+                print("exit recording")
                 break
         print("Video output thread finishing")
 
