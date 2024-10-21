@@ -45,8 +45,6 @@ class Detect:
     DETECT_FRAME = 1
     DETECT_EXIT = 2
 
-    que = queue.Queue()
-
     def __init__(self, outfolder, dtyp):
         """
         Class initialization, pass the output folder and the detection
@@ -67,6 +65,7 @@ class Detect:
             self.imgh = 128
 
         # start the detection thread
+        self.que = queue.Queue()
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
 

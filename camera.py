@@ -10,10 +10,10 @@ CAPFLAGS = (cv2.CAP_PROP_HW_ACCELERATION, cv2.CAP_PROP_HW_DEVICE)
 # minimum detection pixel count
 MIN_WHITE = 64 * 64
 
-class Camera:
+# max recording minutes
+MAX_RECO_MINS = 5
 
-    lastframe = None
-    lastvalid = False
+class Camera:
 
     def __init__(self, idx, outfolder):
         """
@@ -22,6 +22,9 @@ class Camera:
         The index can be a video path+filename, to test the detection
         algotihm with an existing video
         """
+        self.lastframe = None
+        self.lastvalid = False
+
         self.idx = idx
         self.outfolder = outfolder
         self.is_file = not isinstance(idx, int)
@@ -39,6 +42,9 @@ class Camera:
         the movement, and there is a follow-up time of 20 seconds, so the
         recording stops after 20 seconds from the last movement
         """
+
+        print("Starting camera " + str(self.idx))
+
         fgbg = cv2.createBackgroundSubtractorMOG2(detectShadows = False)
         kern_erode = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
         kern_dilate = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (8, 8))
@@ -77,6 +83,7 @@ class Camera:
         history = []
         consec = 0
         register = 0
+        regi_cnt = 0
         curr_frame = 0
         while True:
             ret, frame = cap.read()
@@ -99,24 +106,32 @@ class Camera:
             fgmask = cv2.erode(fgmask, kern_erode)
             fgmask = cv2.dilate(fgmask, kern_dilate)
             if np.sum(fgmask == 255) > MIN_WHITE:
+            #if curr_frame > 5 * capf:
                 consec += 1
                 if register == 0:
-                    if consec == capf // 2:
+                    if consec >= capf // 2:
                         register = stop_size
+                        regi_cnt = 0
                         # start saving video
                         reco.start()
                         # write all history frames
                         for frm in history:
                             reco.frame(frm)
+                            regi_cnt += 1
                 else:
                     register = stop_size
             else:
                 consec = 0
+            if regi_cnt >= MAX_RECO_MINS * 60 * capf:
+                # max recording exceeded
+                regi_cnt = 0
+                register = 1
             if register > 0:
                 register -= 1
                 if register == 0:
                     reco.stop()
             if register > 0:
+                regi_cnt += 1
                 reco.frame(frame)
                 self.lastframe = frame
                 self.lastvalid = True

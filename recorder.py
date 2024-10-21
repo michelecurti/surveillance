@@ -11,8 +11,6 @@ class Recorder:
     VIDEO_STOP = 3
     VIDEO_EXIT = 4
 
-    que = queue.Queue()
-
     def __init__(self, idx, outfolder, capinfo):
         """
         Class initialization, pass camera index (for filename), the
@@ -22,6 +20,7 @@ class Recorder:
         self.outfolder = outfolder
         self.capinfo = capinfo
 
+        self.que = queue.Queue()
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
 
@@ -55,7 +54,10 @@ class Recorder:
                 opened = True
                 print(fname + " start recording")
             elif e == self.VIDEO_FRAME:
-                output.write(f)
+                if opened:
+                    output.write(f)
+                else:
+                    print("Writing but not opened")
             elif e == self.VIDEO_STOP:
                 output.release()
                 opened = False

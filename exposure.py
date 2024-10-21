@@ -12,8 +12,6 @@ class Exposure:
     EXPO_FRAME = 1
     EXPO_EXIT = 2
 
-    que = queue.Queue()
-
     def __init__(self, cap):
         """
         Class initialization, pass the opencv Capure instance so we can
@@ -21,6 +19,7 @@ class Exposure:
         """
         self.cap = cap
 
+        self.que = queue.Queue()
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
 
@@ -35,6 +34,9 @@ class Exposure:
          - when the brightness is more than the higher threshold,
            decrease the exposure until the setpoint is reached
         """
+
+        print("Exposure algorithm for cap " + str(self.cap))
+
         EXP_NON = 1 # exposure is fixed
         EXP_INC = 2 # exposure is increasing
         EXP_DEC = 3 # exposure is decreasing
