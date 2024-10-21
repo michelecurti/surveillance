@@ -10,7 +10,15 @@ import cv2
 import time
 from camera import Camera
 from detect import Detect
+from recorder import Recorder
 
+# start recorder thread
+reco = Recorder("/surveillance/")
+
+# start detection thread
+detect = Detect("/surveillance/detect/", Detect.TYPE_BODY)
+
+# find cameras
 cameras = []
 
 if False:
@@ -22,10 +30,9 @@ else:
         if cap is not None and cap.isOpened():
             cap.release()
             print("Found camera " + str(i))
-            cameras += [Camera(i, "/surveillance/")]
+            cameras += [Camera(i, reco)]
 
-detect = Detect("/surveillance/detect/", Detect.TYPE_BODY)
-
+# foreach camera detect last frame every half second
 curr = 0
 while True:
     time.sleep(0.5)
@@ -39,4 +46,5 @@ while True:
 for camera in cameras:
     camera.exit()
 
+reco.exit()
 detect.exit()

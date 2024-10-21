@@ -11,11 +11,11 @@ CAPFLAGS = (cv2.CAP_PROP_HW_ACCELERATION, cv2.CAP_PROP_HW_DEVICE)
 MIN_WHITE = 64 * 64
 
 # max recording minutes
-MAX_RECO_MINS = 5
+MAX_RECO_MINS = 1
 
 class Camera:
 
-    def __init__(self, idx, outfolder):
+    def __init__(self, idx, reco):
         """
         Class initialization, pass the camera index and the output
         folder where to store the detected videos.
@@ -26,7 +26,7 @@ class Camera:
         self.lastvalid = False
 
         self.idx = idx
-        self.outfolder = outfolder
+        self.reco = reco
         self.is_file = not isinstance(idx, int)
 
         self.thread = threading.Thread(target=self.thread_function)
@@ -61,15 +61,13 @@ class Camera:
             # set camera properties
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1600)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1200)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             STOP_SIZE = 20
 
         # get capture info, width, height, frames per second
         capw = int(cap.get(3))
         caph = int(cap.get(4))
         capf = int(cap.get(5))
-
-        # start recorder thread
-        reco = recorder.Recorder(self.idx, self.outfolder, (capw, caph, capf))
 
         # start exposure algorithm thread
         expo = exposure.Exposure(cap)
@@ -85,6 +83,7 @@ class Camera:
         register = 0
         regi_cnt = 0
         curr_frame = 0
+
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -113,10 +112,10 @@ class Camera:
                         register = stop_size
                         regi_cnt = 0
                         # start saving video
-                        reco.start()
+                        self.reco.start(self.idx, capw, caph, capf)
                         # write all history frames
                         for frm in history:
-                            reco.frame(frm)
+                            self.reco.frame(self.idx, frm)
                             regi_cnt += 1
                 else:
                     register = stop_size
@@ -129,15 +128,13 @@ class Camera:
             if register > 0:
                 register -= 1
                 if register == 0:
-                    reco.stop()
+                    self.reco.stop(self.idx)
             if register > 0:
                 regi_cnt += 1
-                reco.frame(frame)
+                self.reco.frame(self.idx, frame)
                 self.lastframe = frame
                 self.lastvalid = True
             #cv2.imshow('Motion Mask', fgmask)
-        # stop recording
-        reco.exit()
         # stop exposure algorithm
         expo.exit()
         # release the capture instance

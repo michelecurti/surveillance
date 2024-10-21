@@ -11,14 +11,12 @@ class Recorder:
     VIDEO_STOP = 3
     VIDEO_EXIT = 4
 
-    def __init__(self, idx, outfolder, capinfo):
+    def __init__(self, outfolder):
         """
         Class initialization, pass camera index (for filename), the
         output fodler and the capture information (witdh, height, fps)
         """
-        self.idx = idx
         self.outfolder = outfolder
-        self.capinfo = capinfo
 
         self.que = queue.Queue()
         self.thread = threading.Thread(target=self.thread_function)
@@ -36,9 +34,10 @@ class Recorder:
         OUTEXTENSION = ".mp4"
         OUTFLAGS = (cv2.VIDEOWRITER_PROP_HW_ACCELERATION, cv2.VIDEO_ACCELERATION_ANY)
 
-        capw, caph, capf = self.capinfo
         fourcc = cv2.VideoWriter_fourcc('a','v','c','1')
-        opened = False
+        fname = ["", "", "", "", "", "", "", "", "", "" ]
+        output = [ None, None, None, None, None, None, None, None, None, None ]
+        opened = [ False, False, False, False, False, False, False, False, False, False ]
 
         print("Video output thread starting")
 
@@ -46,43 +45,44 @@ class Recorder:
             if self.que.empty():
                 time.sleep(0.1)
                 continue
-            e, f = self.que.get()
+            e, i, f = self.que.get()
             if e == self.VIDEO_START:
-                fname = self.outfolder + datetime.now().strftime(OUTFORMAT)
-                fname += "_cam" + str(self.idx) + OUTEXTENSION
-                output = cv2.VideoWriter(fname, fourcc, capf, (capw, caph), OUTFLAGS)
-                opened = True
-                print(fname + " start recording")
+                fname[i] = self.outfolder + datetime.now().strftime(OUTFORMAT)
+                fname[i] += "_cam" + str(i) + OUTEXTENSION
+                output[i] = cv2.VideoWriter(fname[i], fourcc, f[2], (f[0], f[1]), OUTFLAGS)
+                opened[i] = True
+                print(fname[i] + " start recording " + str(f))
             elif e == self.VIDEO_FRAME:
-                if opened:
-                    output.write(f)
+                if opened[i]:
+                    output[i].write(f)
                 else:
                     print("Writing but not opened")
             elif e == self.VIDEO_STOP:
-                output.release()
-                opened = False
-                print(fname + " stop recording")
+                output[i].release()
+                opened[i] = False
+                print(fname[i] + " stop recording")
             else:
-                if opened:
-                    print(fname + " stop recording")
-                    output.release
-                print(fname + " exit recording")
+                for j in range(0, len(opened)):
+                   if opened[j]:
+                        print(fname[j] + " stop recording")
+                        output[j].release
+                print(fname[i] + " exit recording")
                 break
         print("Video output thread finishing")
 
-    def start(self):
+    def start(self, idx, w, h, fps):
         """ start a recording """
-        self.que.put((self.VIDEO_START, None))
+        self.que.put((self.VIDEO_START, idx, (w, h, fps)))
 
-    def frame(self, frame):
+    def frame(self, idx, frame):
         """ store a frame in the recording file """
-        self.que.put((self.VIDEO_FRAME, frame))
+        self.que.put((self.VIDEO_FRAME, idx, frame))
 
-    def stop(self):
+    def stop(self, idx):
         """ stop recording """
-        self.que.put((self.VIDEO_STOP, None))
+        self.que.put((self.VIDEO_STOP, idx, None))
 
     def exit(self):
         """ exit from the thread function and join the thread """
-        self.que.put((self.VIDEO_EXIT, None))
+        self.que.put((self.VIDEO_EXIT, 0, None))
         self.thread.join()
