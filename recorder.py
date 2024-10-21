@@ -47,7 +47,7 @@ class Recorder:
                 continue
             e, i, f = self.que.get()
             if e == self.VIDEO_START:
-                fname[i] = self.outfolder + datetime.now().strftime(OUTFORMAT)
+                fname[i] = self.outfolder + f[3].strftime(OUTFORMAT)
                 fname[i] += "_cam" + str(i) + OUTEXTENSION
                 output[i] = cv2.VideoWriter(fname[i], fourcc, f[2], (f[0], f[1]), OUTFLAGS)
                 opened[i] = True
@@ -72,7 +72,7 @@ class Recorder:
 
     def start(self, idx, w, h, fps):
         """ start a recording """
-        self.que.put((self.VIDEO_START, idx, (w, h, fps)))
+        self.que.put((self.VIDEO_START, idx, (w, h, fps, datetime.now())))
 
     def frame(self, idx, frame):
         """ store a frame in the recording file """
