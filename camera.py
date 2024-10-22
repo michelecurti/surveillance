@@ -81,6 +81,7 @@ class Camera:
         self.expo.start(self.idx, cap)
 
         history = []
+        ticks = []
         consec = 0
         register = 0
         regi_cnt = 0
@@ -99,31 +100,34 @@ class Camera:
             # fixed size frame history
             if len(history) >= start_size:
                 history.pop(0)
+                ticks.pop(0)
             history.append(frame)
+            ticks.append(cv2.getTickCount())
             # if not enough history, wait
             if len(history) < start_size:
                 continue
+            real_fps = 1 + ((start_size - 1) * cv2.getTickFrequency()) // (ticks[-1] - ticks[0])
             # cleanup movement mask
             fgmask = cv2.erode(fgmask, kern_erode)
             fgmask = cv2.dilate(fgmask, kern_dilate)
             if np.sum(fgmask == 255) > MIN_WHITE:
-            #if curr_frame > 5 * capf:
+            #if curr_frame > 100:
                 consec += 1
                 if register == 0:
-                    if consec >= capf // 2:
+                    if consec >= 1 + real_fps // 2:
                         register = stop_size
                         regi_cnt = 0
                         # start saving video
-                        self.reco.start(self.idx, capw, caph, capf)
+                        self.reco.start(self.idx, capw, caph, real_fps)
                         # write all history frames
                         for frm in history:
                             self.reco.frame(self.idx, frm)
-                            regi_cnt += 1
                 else:
                     register = stop_size
             else:
                 consec = 0
-            if regi_cnt >= MAX_RECO_MINS * 60 * capf:
+            if regi_cnt >= MAX_RECO_MINS * 60 * real_fps:
+                print("reached", regi_cnt)
                 # max recording exceeded
                 regi_cnt = 0
                 register = 1
