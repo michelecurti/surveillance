@@ -35,9 +35,9 @@ class Recorder:
         OUTFLAGS = (cv2.VIDEOWRITER_PROP_HW_ACCELERATION, cv2.VIDEO_ACCELERATION_ANY)
 
         fourcc = cv2.VideoWriter_fourcc('a','v','c','1')
-        fname = ["", "", "", "", "", "", "", "", "", "" ]
-        output = [ None, None, None, None, None, None, None, None, None, None ]
-        opened = [ False, False, False, False, False, False, False, False, False, False ]
+        fname = [ "" ] * 10
+        output = [ None ] * 10
+        opened = [ False ] * 10
 
         print("Video output thread starting")
 
@@ -51,7 +51,7 @@ class Recorder:
                 fname[i] += "_cam" + str(i) + OUTEXTENSION
                 output[i] = cv2.VideoWriter(fname[i], fourcc, f[2], (f[0], f[1]), OUTFLAGS)
                 opened[i] = True
-                print(fname[i] + " start recording " + str(f))
+                print(fname[i] + " start recording " + str(f[0:3]))
             elif e == self.VIDEO_FRAME:
                 if opened[i]:
                     output[i].write(f)

@@ -31,10 +31,10 @@ class Exposure:
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
 
-        self.caps = [None, None, None, None, None, None, None, None ]
-        self.exp_act = [EXP_NON, EXP_NON, EXP_NON, EXP_NON, EXP_NON, EXP_NON, EXP_NON, EXP_NON]
-        self.exposure = [ 0, 0, 0, 0, 0, 0, 0, 0 ]
-        self.exposure_last = [ 0, 0, 0, 0, 0, 0, 0, 0 ]
+        self.caps = [ None ] * 10
+        self.exp_act = [ EXP_NON ] * 10
+        self.exposure = [ 0 ] * 10
+        self.exposure_last = [ 0 ] * 10
 
     def thread_function(self):
         """
