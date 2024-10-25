@@ -22,6 +22,8 @@ class Recorder:
         self.thread = threading.Thread(target=self.thread_function)
         self.thread.start()
 
+        self.total = 0
+
     def thread_function(self):
         """
         Wait for a recording event:
@@ -44,6 +46,7 @@ class Recorder:
         while True:
             if self.que.empty():
                 time.sleep(0.1)
+                #print("total record frames", self.total);
                 continue
             e, i, f = self.que.get()
             if e == self.VIDEO_START:
@@ -53,6 +56,7 @@ class Recorder:
                 opened[i] = True
                 print(fname[i] + " start recording " + str(f[0:3]))
             elif e == self.VIDEO_FRAME:
+                self.total -= 1
                 if opened[i]:
                     output[i].write(f)
                 else:
@@ -65,7 +69,7 @@ class Recorder:
                 for j in range(0, len(opened)):
                    if opened[j]:
                         print(fname[j] + " stop recording")
-                        output[j].release
+                        output[j].release()
                 print("exit recording")
                 break
         print("Video output thread finishing")
@@ -77,6 +81,7 @@ class Recorder:
     def frame(self, idx, frame):
         """ store a frame in the recording file """
         self.que.put((self.VIDEO_FRAME, idx, frame))
+        self.total += 1
 
     def stop(self, idx):
         """ stop recording """

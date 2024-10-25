@@ -4,7 +4,7 @@ import os
 os.environ["OPENCV_FFMPEG_WRITER_OPTIONS"] = "vcodec;h264_qsv"
 
 # disable opencv errors trying to open unexisting cameras, remove in debug
-os.environ["OPENCV_LOG_LEVEL"]="FATAL"
+#os.environ["OPENCV_LOG_LEVEL"]="FATAL"
 
 import cv2
 import time
@@ -12,6 +12,7 @@ from camera import Camera
 from detect import Detect
 from recorder import Recorder
 from exposure import Exposure
+from movement import Movement
 
 # start recorder thread
 reco = Recorder("/surveillance/")
@@ -21,6 +22,9 @@ expo = Exposure()
 
 # start detection thread
 detect = Detect("/surveillance/detect/", Detect.TYPE_BODY)
+
+# start movement detection thread
+move = Movement(reco, expo)
 
 # find cameras
 cameras = []
@@ -34,7 +38,7 @@ else:
         if cap is not None and cap.isOpened():
             cap.release()
             print("Found camera " + str(i))
-            cameras += [Camera(i, reco, expo)]
+            cameras += [Camera(i, reco, expo, move)]
 
 # foreach camera detect last frame every half second
 curr = 0
@@ -54,6 +58,7 @@ while True:
 for camera in cameras:
     camera.exit()
 
+move.exit()
 reco.exit()
 expo.exit()
 detect.exit()

@@ -15,7 +15,7 @@ MAX_RECO_MINS = 5
 
 class Camera:
 
-    def __init__(self, idx, reco, expo):
+    def __init__(self, idx, reco, expo, move):
         """
         Class initialization, pass the camera index and the output
         folder where to store the detected videos.
@@ -25,6 +25,7 @@ class Camera:
         self.lastframe = None
         self.lastvalid = False
 
+        self.move = move
         self.idx = idx
         self.reco = reco
         self.expo = expo
@@ -57,11 +58,11 @@ class Camera:
             output_folder = "./"
             STOP_SIZE = 5
         else:
-            #cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
-            cap = cv2.VideoCapture(self.idx, cv2.CAP_V4L2, CAPFLAGS)
+            cap = cv2.VideoCapture(self.idx)
+            #cap = cv2.VideoCapture(self.idx, cv2.CAP_V4L2, CAPFLAGS)
             output_folder = "/surveillance/"
             # set camera properties
-            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+            #cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1600)
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1200)
             cap.set(cv2.CAP_PROP_BUFFERSIZE, 2)
@@ -72,75 +73,14 @@ class Camera:
         caph = int(cap.get(4))
         capf = int(cap.get(5))
 
-        start_size = capf * 5 # start recording 5 seconds before movement
-        stop_size = capf * STOP_SIZE # stop recording 20 seconds after movement
-
-        # print detection information
-        print(str(capw)+'x'+str(caph)+'@'+str(capf)+'fps', start_size, stop_size)
-
-        self.expo.start(self.idx, cap)
-
-        history = []
-        ticks = []
-        consec = 0
-        register = 0
-        regi_cnt = 0
-        curr_frame = 0
+        # start movement detection for this camera
+        self.move.start(self.idx, cap)
 
         while self.go_on:
             ret, frame = cap.read()
             if not ret:
                 break
-            # update exposure
-            curr_frame += 1
-            if curr_frame % (capf * 2) == 0:
-                self.expo.frame(self.idx, frame)
-            # update background
-            fgmask = fgbg.apply(frame, learningRate = 0.015)
-            # fixed size frame history
-            if len(history) >= start_size:
-                history.pop(0)
-                ticks.pop(0)
-            history.append(frame)
-            ticks.append(cv2.getTickCount())
-            # if not enough history, wait
-            if len(history) < start_size:
-                continue
-            real_fps = 1 + ((start_size - 1) * cv2.getTickFrequency()) // (ticks[-1] - ticks[0])
-            # cleanup movement mask
-            fgmask = cv2.erode(fgmask, kern_erode)
-            fgmask = cv2.dilate(fgmask, kern_dilate)
-            if np.sum(fgmask == 255) > MIN_WHITE:
-            #if curr_frame > 100:
-                consec += 1
-                if register == 0:
-                    if consec >= 1 + real_fps // 2:
-                        register = stop_size
-                        regi_cnt = 0
-                        # start saving video
-                        self.reco.start(self.idx, capw, caph, real_fps)
-                        # write all history frames
-                        for frm in history:
-                            self.reco.frame(self.idx, frm)
-                else:
-                    register = stop_size
-            else:
-                consec = 0
-            if regi_cnt >= MAX_RECO_MINS * 60 * real_fps:
-                print("reached", regi_cnt)
-                # max recording exceeded
-                regi_cnt = 0
-                register = 1
-            if register > 0:
-                register -= 1
-                if register == 0:
-                    self.reco.stop(self.idx)
-            if register > 0:
-                regi_cnt += 1
-                self.reco.frame(self.idx, frame)
-                self.lastframe = frame
-                self.lastvalid = True
-            #cv2.imshow('Motion Mask', fgmask)
+            self.move.frame(self.idx, frame)
         # release the capture instance
         cap.release()
         # destroy all cv2 windows, if any
@@ -148,10 +88,7 @@ class Camera:
 
     def last_frame(self):
         """ get the last detection frame, used to find faces or bodies """
-        if self.lastvalid:
-            self.lastvalid = False
-            return True, self.lastframe
-        return False, None
+        return self.move.last_frame(self.idx)
 
     def exit(self):
         """ join the camera thread """

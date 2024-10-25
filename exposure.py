@@ -58,7 +58,8 @@ class Exposure:
                 self.exposure_last[i] = EXPOSURE_INITIAL
                 print("Exposure algorithm for cap ", i, f)
             elif e == self.EXPO_FRAME:
-                gray = cv2.cvtColor(f, cv2.COLOR_BGR2GRAY)
+                gray = f
+                #gray = cv2.cvtColor(f, cv2.COLOR_BGR2GRAY)
                 bright = np.average(gray)
                 if bright < EXPO_SETP - EXPO_HYST:
                     # if brightness is below the lower threshold, increase
